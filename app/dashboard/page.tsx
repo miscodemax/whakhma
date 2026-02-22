@@ -119,7 +119,7 @@ export default function DashboardPage() {
 
     setTimeout(() => {
       const text = encodeURIComponent(
-        `🤫 Envoie-moi un message anonyme !\n\nDi ma wakh ci kanam — je ne saurai jamais que c'est toi 😈\n\n🔗 ${myLink}`,
+        `🤫 Envoie-moi un message anonyme !\n — je ne saurai jamais que c'est toi 😈\n\n🔗 ${myLink}`,
       );
       window.open(`https://wa.me/?text=${text}`, "_blank");
     }, 800);
@@ -319,7 +319,7 @@ export default function DashboardPage() {
                   marginBottom: "12px",
                 }}
               >
-                Wakh ma ci kanam 🤫
+                Messages anonymes🤫
               </p>
 
               <p
