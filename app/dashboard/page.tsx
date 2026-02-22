@@ -5,11 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Message, Profile } from "@/lib/type";
 
-export const metadata = {
-  title: "Dashboard",
-  description: "Gère tes messages anonymes et réponds à ceux que tu veux.",
-};
-
 export default function DashboardPage() {
   const supabase = createClient();
   const router = useRouter();

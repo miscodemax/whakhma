@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import BackButton from "./Retour";
 export default function Navbar() {
   const supabase = createClient();
   const router = useRouter();
