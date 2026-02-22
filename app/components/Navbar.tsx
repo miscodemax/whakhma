@@ -1,17 +1,22 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export default function Navbar() {
-  const supabase = createClient();
   const router = useRouter();
+  const supabaseRef = useRef<SupabaseClient | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    const getUser = async () => {
+    const init = async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      supabaseRef.current = supabase;
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -25,27 +30,28 @@ export default function Navbar() {
           .single();
         setUsername(profile?.username ?? null);
       }
+
+      const { data: listener } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          setUser(session?.user ?? null);
+          if (!session?.user) setUsername(null);
+        },
+      );
+
+      return () => listener.subscription.unsubscribe();
     };
-    getUser();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-        if (!session?.user) setUsername(null);
-      },
-    );
-
-    return () => listener.subscription.unsubscribe();
+    init();
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await supabaseRef.current?.auth.signOut();
     router.push("/");
     router.refresh();
   };
 
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    await supabaseRef.current?.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -55,10 +61,8 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 sm:px-10 py-5">
-      {/* Glassmorphism background */}
       <div className="absolute inset-0 bg-[#0a0a0a]/60 backdrop-blur-md border-b border-white/[0.05]" />
 
-      {/* Logo */}
       <a
         href="/"
         className="relative z-10 text-[#F4A800] font-black text-2xl tracking-tight hover:opacity-80 transition-opacity"
@@ -66,7 +70,6 @@ export default function Navbar() {
         wakhma sa deugg.
       </a>
 
-      {/* Right side */}
       <div className="relative z-10 flex items-center gap-4">
         {user ? (
           <>
