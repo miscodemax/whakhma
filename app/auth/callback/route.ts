@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -9,21 +8,25 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/?error=no_code`);
   }
 
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return NextResponse.redirect(`${origin}/?error=config`);
+  }
+
+  const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    console.error("Callback error:", error);
     return NextResponse.redirect(`${origin}/?error=auth&msg=${error.message}`);
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.redirect(`${origin}/?error=no_user`);
-  }
+  if (!user) return NextResponse.redirect(`${origin}/?error=no_user`);
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -31,9 +34,6 @@ export async function GET(request: Request) {
     .eq("id", user.id)
     .single();
 
-  if (!profile) {
-    return NextResponse.redirect(`${origin}/setup`);
-  }
-
+  if (!profile) return NextResponse.redirect(`${origin}/setup`);
   return NextResponse.redirect(`${origin}/dashboard`);
 }
