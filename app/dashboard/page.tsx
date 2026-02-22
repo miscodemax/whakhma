@@ -5,6 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Message, Profile } from "@/lib/type";
 
+export const metadata = {
+  title: "Dashboard",
+  description: "Gère tes messages anonymes et réponds à ceux que tu veux.",
+};
+
 export default function DashboardPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -49,7 +54,6 @@ export default function DashboardPage() {
       setMessages(msgs ?? []);
       setLoading(false);
 
-      // Mark unread as read
       await supabase
         .from("messages")
         .update({ is_read: true })
@@ -82,22 +86,28 @@ export default function DashboardPage() {
     setSavingReply(null);
   };
 
-  const shareToWhatsApp = (msg: Message) => {
-    setShareMsg(msg);
-  };
-
   const downloadCard = async () => {
     if (!cardRef.current || !shareMsg) return;
     const { default: html2canvas } = await import("html2canvas");
     const canvas = await html2canvas(cardRef.current, {
-      backgroundColor: null,
+      backgroundColor: "#111111",
       scale: 3,
     });
     const url = canvas.toDataURL("image/png");
+
+    // 1. Télécharge l'image
     const a = document.createElement("a");
     a.href = url;
     a.download = `wakhma-${shareMsg.id}.png`;
     a.click();
+
+    // 2. Ouvre WhatsApp avec texte pré-rempli après 800ms
+    setTimeout(() => {
+      const text = encodeURIComponent(
+        `💬 Message anonyme reçu sur wakhma !\n\n"${shareMsg.content}"\n\n➡️ Ma réponse : "${shareMsg.reply}"\n\n🔗 Envoie-moi un message anonyme : ${myLink}`,
+      );
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+    }, 800);
   };
 
   const unread = messages.filter((m) => !m.is_read).length;
@@ -112,7 +122,6 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] px-4 py-24">
-      {/* Background blob */}
       <div className="fixed top-0 left-[50%] -translate-x-1/2 w-[700px] h-[300px] rounded-full bg-[#F4A800] opacity-[0.07] blur-[120px] pointer-events-none" />
 
       <div className="relative z-10 max-w-2xl mx-auto flex flex-col gap-8">
@@ -146,7 +155,7 @@ export default function DashboardPage() {
             </button>
           </div>
           <p className="text-white/25 text-xs">
-            partage ko say kharite — ils peuvent t'écrire de façon anonyme 🤫
+            Partage ko say kharite — ils peuvent t'écrire de façon anonyme 🤫
           </p>
         </div>
 
@@ -171,7 +180,6 @@ export default function DashboardPage() {
                 key={msg.id}
                 className="p-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm flex flex-col gap-4 hover:border-white/[0.1] transition-all duration-200"
               >
-                {/* Message content */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-white text-sm leading-relaxed flex-1">
@@ -191,7 +199,6 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Reply */}
                 {msg.reply ? (
                   <div className="flex flex-col gap-3">
                     <div className="px-4 py-3 rounded-xl bg-[#F4A800]/10 border border-[#F4A800]/20">
@@ -203,7 +210,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <button
-                      onClick={() => shareToWhatsApp(msg)}
+                      onClick={() => setShareMsg(msg)}
                       className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] text-sm font-semibold hover:bg-[#25D366]/20 transition-all duration-200 active:scale-95"
                     >
                       <svg
@@ -252,7 +259,7 @@ export default function DashboardPage() {
       {shareMsg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-sm flex flex-col gap-4">
-            {/* Card à partager */}
+            {/* Carte à capturer */}
             <div
               ref={cardRef}
               className="w-full rounded-2xl overflow-hidden"
@@ -263,7 +270,6 @@ export default function DashboardPage() {
                 padding: "28px",
               }}
             >
-              {/* Logo */}
               <p
                 style={{
                   color: "#F4A800",
@@ -276,7 +282,6 @@ export default function DashboardPage() {
                 wakhma.
               </p>
 
-              {/* Message */}
               <div
                 style={{
                   background: "rgba(255,255,255,0.04)",
@@ -308,7 +313,6 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              {/* Reply */}
               <div
                 style={{
                   background: "rgba(244,168,0,0.08)",
@@ -340,22 +344,37 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              {/* Footer */}
               <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "11px" }}>
-                Wakh sa xalaat → wakhma.vercel.app/{profile?.username}
+                Wakh sa xalaat anonymement → {myLink}
               </p>
             </div>
 
-            {/* Actions */}
+            {/* Instructions */}
+            <div className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+              <p className="text-white/50 text-xs leading-relaxed">
+                <span className="text-white/80 font-semibold">
+                  Comment partager en statut :
+                </span>
+                <br />
+                1. Télécharge l'image 📸
+                <br />
+                2. Ouvre WhatsApp → Statut → Photo
+                <br />
+                3. Sélectionne l'image téléchargée ✅
+              </p>
+            </div>
+
             <button
               onClick={downloadCard}
-              className="w-full py-3.5 rounded-xl bg-[#F4A800] text-black font-bold text-sm hover:bg-[#ffc233] transition-all active:scale-95"
+              className="w-full py-3.5 rounded-xl bg-[#25D366] text-white font-bold text-sm hover:bg-[#20b558] transition-all active:scale-95 flex items-center justify-center gap-2"
             >
-              Télécharger la carte 📸
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.554 4.107 1.523 5.83L.057 23.486a.5.5 0 00.614.612l5.757-1.51A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.894a9.878 9.878 0 01-5.031-1.378l-.36-.214-3.733.979.997-3.645-.235-.374A9.861 9.861 0 012.106 12C2.106 6.53 6.53 2.106 12 2.106S21.894 6.53 21.894 12 17.47 21.894 12 21.894z" />
+              </svg>
+              📸 Télécharger + Ouvrir WhatsApp
             </button>
-            <p className="text-white/30 text-xs text-center">
-              Télécharge l'image et poste-la dans ton statut WhatsApp
-            </p>
+
             <button
               onClick={() => setShareMsg(null)}
               className="text-white/30 text-sm hover:text-white/60 transition-colors text-center"
