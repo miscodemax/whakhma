@@ -58,7 +58,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 sm:px-10 py-5">
       {/* Glassmorphism background */}
       <div className="absolute inset-0 bg-[#0a0a0a]/60 backdrop-blur-md border-b border-white/[0.05]" />
-      <BackButton />
+
       {/* Logo */}
       <a
         href="/"
