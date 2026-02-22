@@ -15,8 +15,10 @@ export default function DashboardPage() {
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [savingReply, setSavingReply] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<Message | null>(null);
+  const [showLinkCard, setShowLinkCard] = useState(false);
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const linkCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -72,15 +74,14 @@ export default function DashboardPage() {
     const reply = replyText[msgId]?.trim();
     if (!reply) return;
     setSavingReply(msgId);
-
     await supabase.from("messages").update({ reply }).eq("id", msgId);
-
     setMessages((prev) =>
       prev.map((m) => (m.id === msgId ? { ...m, reply } : m)),
     );
     setSavingReply(null);
   };
 
+  // Télécharge la carte de réponse + ouvre WhatsApp
   const downloadCard = async () => {
     if (!cardRef.current || !shareMsg) return;
     const { default: html2canvas } = await import("html2canvas");
@@ -89,17 +90,36 @@ export default function DashboardPage() {
       scale: 3,
     });
     const url = canvas.toDataURL("image/png");
-
-    // 1. Télécharge l'image
     const a = document.createElement("a");
     a.href = url;
     a.download = `wakhma-${shareMsg.id}.png`;
     a.click();
 
-    // 2. Ouvre WhatsApp avec texte pré-rempli après 800ms
     setTimeout(() => {
       const text = encodeURIComponent(
         `💬 Message anonyme reçu sur wakhma !\n\n"${shareMsg.content}"\n\n➡️ Ma réponse : "${shareMsg.reply}"\n\n🔗 Envoie-moi un message anonyme : ${myLink}`,
+      );
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+    }, 800);
+  };
+
+  // Télécharge la carte d'invitation + ouvre WhatsApp
+  const downloadLinkCard = async () => {
+    if (!linkCardRef.current) return;
+    const { default: html2canvas } = await import("html2canvas");
+    const canvas = await html2canvas(linkCardRef.current, {
+      backgroundColor: "#111111",
+      scale: 3,
+    });
+    const url = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `wakhma-invite-${profile?.username}.png`;
+    a.click();
+
+    setTimeout(() => {
+      const text = encodeURIComponent(
+        `🤫 Envoie-moi un message anonyme !\n\nDi ma wakh ci kanam — je ne saurai jamais que c'est toi 😈\n\n🔗 ${myLink}`,
       );
       window.open(`https://wa.me/?text=${text}`, "_blank");
     }, 800);
@@ -149,6 +169,19 @@ export default function DashboardPage() {
               {copied ? "Copié ✓" : "Copier"}
             </button>
           </div>
+
+          {/* Bouton partager le lien en statut */}
+          <button
+            onClick={() => setShowLinkCard(true)}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] text-sm font-semibold hover:bg-[#25D366]/20 transition-all duration-200 active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.554 4.107 1.523 5.83L.057 23.486a.5.5 0 00.614.612l5.757-1.51A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.894a9.878 9.878 0 01-5.031-1.378l-.36-.214-3.733.979.997-3.645-.235-.374A9.861 9.861 0 012.106 12C2.106 6.53 6.53 2.106 12 2.106S21.894 6.53 21.894 12 17.47 21.894 12 21.894z" />
+            </svg>
+            Partager mon lien en statut WhatsApp
+          </button>
+
           <p className="text-white/25 text-xs">
             Partage ko say kharite — ils peuvent t'écrire de façon anonyme 🤫
           </p>
@@ -250,11 +283,157 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Share Modal */}
+      {/* ===== MODAL : Carte d'invitation (partager mon lien) ===== */}
+      {showLinkCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-sm flex flex-col gap-4">
+            {/* Carte invitation */}
+            <div
+              ref={linkCardRef}
+              className="w-full rounded-2xl overflow-hidden"
+              style={{
+                background:
+                  "linear-gradient(135deg, #0f0f0f 0%, #1a1400 60%, #0f0f0f 100%)",
+                border: "1px solid rgba(244,168,0,0.25)",
+                padding: "32px 28px",
+              }}
+            >
+              <p
+                style={{
+                  color: "#F4A800",
+                  fontWeight: 900,
+                  fontSize: "20px",
+                  marginBottom: "24px",
+                  letterSpacing: "-0.5px",
+                }}
+              >
+                wakhma.
+              </p>
+
+              <p
+                style={{
+                  color: "white",
+                  fontWeight: 800,
+                  fontSize: "22px",
+                  lineHeight: "1.3",
+                  marginBottom: "12px",
+                }}
+              >
+                Wakh ma ci kanam 🤫
+              </p>
+
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.45)",
+                  fontSize: "14px",
+                  lineHeight: "1.6",
+                  marginBottom: "28px",
+                }}
+              >
+                Envoie-moi un message anonyme — je ne saurai jamais que c'est
+                toi. Di ma wakh sa xalaat bi !
+              </p>
+
+              <div
+                style={{
+                  background: "rgba(244,168,0,0.08)",
+                  borderRadius: "12px",
+                  padding: "14px 16px",
+                  border: "1px solid rgba(244,168,0,0.2)",
+                  marginBottom: "24px",
+                }}
+              >
+                <p
+                  style={{
+                    color: "rgba(255,255,255,0.35)",
+                    fontSize: "10px",
+                    marginBottom: "6px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Mon lien
+                </p>
+                <p
+                  style={{
+                    color: "#F4A800",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {myLink}
+                </p>
+              </div>
+
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    background: "rgba(244,168,0,0.15)",
+                    border: "1px solid rgba(244,168,0,0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <span style={{ fontSize: "14px" }}>👤</span>
+                </div>
+                <p
+                  style={{
+                    color: "rgba(255,255,255,0.5)",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  @{profile?.username}
+                </p>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+              <p className="text-white/50 text-xs leading-relaxed">
+                <span className="text-white/80 font-semibold">
+                  Comment poster en statut :
+                </span>
+                <br />
+                1. Télécharge l'image 📸
+                <br />
+                2. WhatsApp → Statut → icône photo
+                <br />
+                3. Sélectionne l'image ✅
+              </p>
+            </div>
+
+            <button
+              onClick={downloadLinkCard}
+              className="w-full py-3.5 rounded-xl bg-[#25D366] text-white font-bold text-sm hover:bg-[#20b558] transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.554 4.107 1.523 5.83L.057 23.486a.5.5 0 00.614.612l5.757-1.51A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.894a9.878 9.878 0 01-5.031-1.378l-.36-.214-3.733.979.997-3.645-.235-.374A9.861 9.861 0 012.106 12C2.106 6.53 6.53 2.106 12 2.106S21.894 6.53 21.894 12 17.47 21.894 12 21.894z" />
+              </svg>
+              📸 Télécharger + Ouvrir WhatsApp
+            </button>
+
+            <button
+              onClick={() => setShowLinkCard(false)}
+              className="text-white/30 text-sm hover:text-white/60 transition-colors text-center"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL : Carte réponse message ===== */}
       {shareMsg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-sm flex flex-col gap-4">
-            {/* Carte à capturer */}
             <div
               ref={cardRef}
               className="w-full rounded-2xl overflow-hidden"
@@ -344,7 +523,6 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Instructions */}
             <div className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
               <p className="text-white/50 text-xs leading-relaxed">
                 <span className="text-white/80 font-semibold">
@@ -353,9 +531,9 @@ export default function DashboardPage() {
                 <br />
                 1. Télécharge l'image 📸
                 <br />
-                2. Ouvre WhatsApp → Statut → Photo
+                2. WhatsApp → Statut → icône photo
                 <br />
-                3. Sélectionne l'image téléchargée ✅
+                3. Sélectionne l'image ✅
               </p>
             </div>
 
