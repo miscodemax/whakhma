@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Message, Profile } from "@/lib/type";
 
 export default function DashboardPage() {
   const supabase = createClient();
@@ -123,7 +124,7 @@ export default function DashboardPage() {
           </h1>
           <p className="text-white/40 text-sm">
             {messages.length === 0
-              ? "Dégg rekk — partagel sa lien ngirr diott ay messages."
+              ? "Dégg rekk — partagel sa lien ngirr diott."
               : `${messages.length} message${messages.length > 1 ? "s" : ""} reçu${messages.length > 1 ? "s" : ""}${unread > 0 ? ` · ${unread} nouveau${unread > 1 ? "x" : ""}` : ""}`}
           </p>
         </div>
