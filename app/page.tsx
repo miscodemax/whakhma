@@ -37,7 +37,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] overflow-hidden relative flex flex-col items-center justify-center px-4 py-14">
+    <main className="min-h-screen bg-[#0a0a0a] overflow-hidden relative flex flex-col items-center justify-center px-4 pb-14 pt-24">
       {/* Background blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#F4A800] opacity-20 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#F4A800] opacity-10 blur-[100px] pointer-events-none" />
